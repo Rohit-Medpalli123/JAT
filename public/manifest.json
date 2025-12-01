@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Job Tracker — Quick App",
+  "version": "1.0.0",
+  "description": "Manage and track job applications quickly. Click the toolbar icon to open the tracker page.",
+  "action": {
+    "default_title": "Open Job Tracker",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
+
