@@ -70,6 +70,69 @@ export default function App(){
     URL.revokeObjectURL(url)
   }
 
+  function parseCSV(text){
+    const lines = text.split('\n').filter(line => line.trim())
+    if(lines.length < 2) return []
+    
+    // Parse CSV considering quoted fields
+    const parseCSVLine = (line) => {
+      const result = []
+      let current = ''
+      let inQuotes = false
+      
+      for(let i = 0; i < line.length; i++){
+        const char = line[i]
+        const nextChar = line[i + 1]
+        
+        if(char === '"'){
+          if(inQuotes && nextChar === '"'){
+            current += '"'
+            i++ // Skip next quote
+          } else {
+            inQuotes = !inQuotes
+          }
+        } else if(char === ',' && !inQuotes){
+          result.push(current)
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      result.push(current)
+      return result
+    }
+    
+    const headers = parseCSVLine(lines[0])
+    const rows = lines.slice(1).map(line => parseCSVLine(line))
+    
+    return rows.map(row => {
+      const item = { id: uid(), createdAt: Date.now() }
+      headers.forEach((header, i) => {
+        const key = header.toLowerCase().replace(/\s+/g, '')
+        const value = row[i] || ''
+        
+        // Map CSV headers to object keys
+        if(key === 'company') item.company = value
+        else if(key === 'position') item.position = value
+        else if(key === 'contact') item.contact = value
+        else if(key === 'channel') item.channel = value
+        else if(key === 'status') item.status = value
+        else if(key === 'nextstep') item.nextStep = value
+        else if(key === 'followup') item.followUp = value
+        else if(key === 'priority') item.priority = value
+        else if(key === 'notes') item.notes = value
+        else if(key === 'createdat'){
+          // Try to parse the date
+          const date = new Date(value)
+          if(!isNaN(date.getTime())){
+            item.createdAt = date.getTime()
+          }
+        }
+      })
+      return item
+    })
+  }
+
   const filtered = items.filter(i=>{
     const q = query.toLowerCase().trim()
     if(!q) return true
@@ -126,25 +189,37 @@ export default function App(){
       <header className="header">
         <h1>Job Application Tracker</h1>
         <div className="controls">
-          <input type="file" accept=".json" id="import-file" style={{display:'none'}} onChange={(e)=>{
+          <input type="file" accept=".json,.csv" id="import-file" style={{display:'none'}} onChange={(e)=>{
             const file = e.target.files[0]
             if(!file) return
             const reader = new FileReader()
             reader.onload = (ev) => {
               try {
-                const imported = JSON.parse(ev.target.result)
+                let imported = []
+                const content = ev.target.result
+                const isCSV = file.name.toLowerCase().endsWith('.csv')
+                
+                if(isCSV){
+                  imported = parseCSV(content)
+                } else {
+                  imported = JSON.parse(content)
+                }
+                
                 if(Array.isArray(imported) && imported.length > 0){
                   setLocalItems(prev => [...imported, ...prev])
                   alert(`Imported ${imported.length} job entries!`)
+                } else {
+                  alert('No valid entries found in the file.')
                 }
               } catch(err) {
                 alert('Error importing file. Please check the format.')
+                console.error('Import error:', err)
               }
             }
             reader.readAsText(file)
             e.target.value = ''
           }} />
-          <button onClick={()=>document.getElementById('import-file').click()} className="btn">Import JSON</button>
+          <button onClick={()=>document.getElementById('import-file').click()} className="btn">Import CSV/JSON</button>
           <button onClick={exportCSV} className="btn primary">Export CSV</button>
         </div>
       </header>
